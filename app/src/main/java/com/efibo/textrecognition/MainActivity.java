@@ -1,41 +1,28 @@
 package com.efibo.textrecognition;
 
 import android.content.Context;
-import android.content.res.AssetManager;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.util.Log;
-import android.util.Pair;
-import android.view.View;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.widget.*;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.efibo.textrecognition.GraphicOverlay.Graphic;
-import org.jetbrains.annotations.NotNull;
+import java.io.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
-    private Button textButton;
+    private Button textShowButton;
+    private Button textSaveButton;
     private Bitmap selectedImage;
-    private GraphicOverlay graphicOverlay;
-    private Integer imageMaxWidth;
-    private Integer imageMaxHeigth;
+    private int showOrSave = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,130 +30,102 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         setContentView(R.layout.activity_main);
 
         imageView = findViewById(R.id.image_view);
-        textButton = findViewById(R.id.button_text);
-        graphicOverlay = findViewById(R.id.graphic_overlay);
+        textShowButton = findViewById(R.id.button_text);
+        textSaveButton = findViewById(R.id.button_textSave);
+        Button buttonPic = findViewById(R.id.button_choosePic);
+        Button buttonCamera = findViewById(R.id.button_camera);
 
-        textButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                recognizeText();
-            }
+        textShowButton.setEnabled(false);
+        textSaveButton.setEnabled(false);
+
+        textShowButton.setOnClickListener(view -> {
+            showOrSave = 1;
+            recognizeText();
         });
-        Spinner dropdown = findViewById(R.id.spinner);
-        String[] items = new String[]{"Test Image 1", "Test Image 2"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items);
-        dropdown.setAdapter(adapter);
-        dropdown.setOnItemSelectedListener(this);
+
+        textSaveButton.setOnClickListener(view -> {
+            showOrSave = 2;
+            recognizeText();
+        });
+
+        buttonPic.setOnClickListener(view -> {
+            Intent choosePic = new Intent(Intent.ACTION_GET_CONTENT);
+            choosePic.setType("image/*");
+            choosePic = Intent.createChooser(choosePic, "Choose a picture");
+            startActivityForResult(choosePic, 1);
+        });
+
+        buttonCamera.setOnClickListener(view -> {
+            Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            startActivityForResult(cameraIntent, 1888);
+        });
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1888) {
+            selectedImage = (Bitmap) data.getExtras().get("data");
+            imageView.setImageBitmap(selectedImage);
+        } else if (requestCode == 1) {
+            try {
+                Uri imageUri = data.getData();
+                InputStream imageStream = getContentResolver().openInputStream(imageUri);
+                selectedImage = BitmapFactory.decodeStream(imageStream);
+                imageView.setImageBitmap(selectedImage);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        textShowButton.setEnabled(true);
+        textSaveButton.setEnabled(true);
     }
 
     private void recognizeText() {
         InputImage image = InputImage.fromBitmap(selectedImage, 0);
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
-        textButton.setEnabled(false);
-        recognizer.process(image).addOnSuccessListener(new OnSuccessListener<Text>() {
-            @Override
-            public void onSuccess(Text text) {
-                textButton.setEnabled(true);
-                processResult(text);
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull @NotNull Exception e) {
-                textButton.setEnabled(true);
-                e.printStackTrace();
-            }
+        textShowButton.setEnabled(false);
+        recognizer.process(image).addOnSuccessListener(text -> {
+            textShowButton.setEnabled(true);
+            textSaveButton.setEnabled(true);
+            processResult(text);
+        }).addOnFailureListener(e -> {
+            textShowButton.setEnabled(true);
+            textSaveButton.setEnabled(true);
+            e.printStackTrace();
         });
     }
 
     private void processResult(Text text) {
-        List<Text.TextBlock> blocks = text.getTextBlocks();
-        if (blocks.size() == 0) {
-            Toast.makeText(getApplicationContext(), "No face found", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        graphicOverlay.clear();
-        for (int i = 0; i < blocks.size(); i++) {
-            List<Text.Line> lines = blocks.get(i).getLines();
-            for (int j = 0; j < lines.size(); j++) {
-                List<Text.Element> elements = lines.get(j).getElements();
-                for (int k = 0; k < elements.size(); k++) {
-                    Graphic textGraphic = new TextGraphic(graphicOverlay, elements.get(k));
-                    graphicOverlay.add(textGraphic);
-                }
+        if (showOrSave == 1) {
+            try {
+                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("output.txt", Context.MODE_PRIVATE));
+                outputStreamWriter.write(text.getText());
+                outputStreamWriter.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
+            Intent i = new Intent(this, ShowTextActivity.class);
+            i.putExtra("text", text.getText());
+            startActivity(i);
+        }
+        else if (showOrSave == 2) {
+            saveResult(text);
         }
     }
 
-    private Integer getImageMaxWidth() {
-        if (imageMaxWidth == null) {
-            imageMaxWidth = imageView.getWidth();
-        }
-        return imageMaxWidth;
-    }
-
-    private Integer getImageMaxHeigth() {
-        if (imageMaxHeigth == null) {
-            imageMaxHeigth = imageView.getHeight();
-        }
-        return imageMaxHeigth;
-    }
-
-    private Pair<Integer, Integer> getTargetedWidthHeigth() {
-        int targetWidth;
-        int targetHeight;
-        int maxWidthForPortraitMode = getImageMaxWidth();
-        int maxHeightForPortraitMode = getImageMaxHeigth();
-        targetWidth = maxWidthForPortraitMode;
-        targetHeight = maxHeightForPortraitMode;
-        return new Pair<>(targetWidth, targetHeight);
-    }
-
-    public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
-        graphicOverlay.clear();
-        switch (position) {
-            case 0:
-                selectedImage = getBitmapFromAsset(this, "testImage1.png");
-                break;
-            case 1:
-                selectedImage = getBitmapFromAsset(this, "testImage2.png");
-                break;
-        }
-        if (selectedImage != null) {
-            Pair<Integer, Integer> targetedSize = getTargetedWidthHeigth();
-
-            int targetWidth = targetedSize.first;
-            int maxHeight = targetedSize.second;
-
-            float scaleFactor = Math.max(
-                    (float) selectedImage.getWidth() / (float) targetWidth,
-                    (float) selectedImage.getHeight() / (float) maxHeight);
-
-            Bitmap resizedBitmap =
-                    Bitmap.createScaledBitmap(
-                            selectedImage,
-                            (int) (selectedImage.getWidth() / scaleFactor),
-                            (int) (selectedImage.getHeight() / scaleFactor),
-                            true);
-
-            imageView.setImageBitmap(resizedBitmap);
-            selectedImage = resizedBitmap;
-        }
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {}
-
-    public static Bitmap getBitmapFromAsset(Context context, String filePath) {
-        AssetManager assetManager = context.getAssets();
-
-        InputStream is;
-        Bitmap bitmap = null;
+    private void saveResult(Text text) {
+        String fileName = "";
+        // Auswahl des Speicherorts und Eingabe des Dateinamens
         try {
-            is = assetManager.open(filePath);
-            bitmap = BitmapFactory.decodeStream(is);
-        } catch (IOException e) {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput(fileName, Context.MODE_PRIVATE));
+            outputStreamWriter.write(text.getText());
+            outputStreamWriter.close();
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
-        return bitmap;
     }
 }

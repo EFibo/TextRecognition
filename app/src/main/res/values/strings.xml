@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">TextRecognition</string>
+    <string name="choosePic">choose a picture</string>
+    <string name="camera">camera</string>
+    <string name="textShow">Find text and show</string>
+    <string name="textSave">Find text and save</string>
+    <string name="contentDescription">Image to find text in</string>
 </resources>

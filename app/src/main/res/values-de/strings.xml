@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TextRecognition</string>
+    <string name="choosePic">Foto auswählen</string>
+    <string name="camera">Kamera</string>
+    <string name="textShow">Text finden und anzeigen</string>
+    <string name="textSave">Text finden und speichern</string>
+    <string name="contentDescription">Bild in dem Text gefunden werden soll</string>
+</resources>

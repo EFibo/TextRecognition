@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.efibo.textrecognition">
 
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <uses-feature android:name="android.hardware.camera"/>
+
     <application
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
@@ -10,18 +17,19 @@
             android:supportsRtl="true"
             android:theme="@style/Theme.TextRecognition">
         <activity
+                android:name=".ShowTextActivity"
+                android:exported="true"/>
+        <activity
                 android:name=".MainActivity"
-                android:exported="true">
-                <intent-filter>
-                    <action android:name="android.intent.action.MAIN" />
+                android:configChanges="keyboardHidden|orientation|screenSize"
+                android:exported="true"
+                android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
 
-                    <category android:name="android.intent.category.LAUNCHER" />
-                </intent-filter>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
         </activity>
-
-        <meta-data
-                android:name="com.google.mlkit.vision.DEPENDENCIES"
-                android:value="ocr"/>
     </application>
 
 </manifest>
