@@ -19,6 +19,16 @@
             android:contentDescription="@string/contentDescription"/>
 
     <Button
+            android:id="@+id/button_inputUrl"
+            android:text="@string/inputUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            app:layout_constraintBottom_toTopOf="@id/button_choosePic"
+            app:layout_constraintRight_toLeftOf="parent" android:backgroundTint="#00BCD4"/>
+
+    <Button
             android:id="@+id/button_choosePic"
             android:text="@string/choosePic"
             android:layout_width="match_parent"
@@ -45,12 +55,12 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
-            app:layout_constraintBottom_toTopOf="@id/button_textSave"
+            app:layout_constraintBottom_toTopOf="@id/button_textOpen"
             app:layout_constraintLeft_toRightOf="parent" android:backgroundTint="#A4AEE6"/>
 
     <Button
-            android:id="@+id/button_textSave"
-            android:text="@string/textSave"
+            android:id="@+id/button_textOpen"
+            android:text="@string/textOpen"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
