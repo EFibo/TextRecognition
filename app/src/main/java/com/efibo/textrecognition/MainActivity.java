@@ -10,20 +10,15 @@ import android.util.Log;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import androidx.fragment.app.DialogFragment;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.rustamg.filedialogs.FileDialog;
-import com.rustamg.filedialogs.OpenFileDialog;
-import com.rustamg.filedialogs.SaveFileDialog;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
