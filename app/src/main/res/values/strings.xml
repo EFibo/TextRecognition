@@ -6,5 +6,4 @@
     <string name="textSave">Find text and save</string>
     <string name="contentDescription">Image to find text in</string>
     <string name="inputUrl">Image from URL</string>
-    <string name="textOpen">Open existing text</string>
 </resources>

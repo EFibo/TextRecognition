@@ -1,34 +1,51 @@
 package com.efibo.textrecognition;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.*;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import androidx.fragment.app.DialogFragment;
+import androidx.savedstate.SavedStateRegistryOwner;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.rustamg.filedialogs.FileDialog;
+import com.rustamg.filedialogs.SaveFileDialog;
 
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private Button textShowButton;
-    private Button textOpenButton;
-    private Button buttonUrl;
+    private Button textSaveButton;
     private Bitmap selectedImage;
-    private int showOrSave = 0;
+    private String src = null;
+    private URL url;
+    private ProgressDialog progressDialog;
+
+    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,53 +54,31 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.image_view);
         textShowButton = findViewById(R.id.button_text);
-        textOpenButton = findViewById(R.id.button_textOpen);
-        buttonUrl = findViewById(R.id.button_inputUrl);
+        textSaveButton = findViewById(R.id.button_textSave);
+        Button buttonUrl = findViewById(R.id.button_inputUrl);
         Button buttonPic = findViewById(R.id.button_choosePic);
         Button buttonCamera = findViewById(R.id.button_camera);
 
         textShowButton.setEnabled(false);
+        textSaveButton.setEnabled(false);
 
-        textShowButton.setOnClickListener(view -> {
+        progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog.setIndeterminate(true);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.setTitle("AsyncTask");
+        progressDialog.setMessage("Please wait, we are downloading your image file ...");
+
+        textShowButton.setOnClickListener(view -> recognizeText());
+
+        textSaveButton.setOnClickListener(view -> {
             recognizeText();
-        });
-
-        textOpenButton.setOnClickListener(view -> {
-            openText();
+            FileDialog dialog = new SaveFileDialog();
+            dialog.setStyle(DialogFragment.STYLE_NO_TITLE, R.style.Base_Theme_AppCompat);
+            dialog.show(getSupportFragmentManager(), SaveFileDialog.class.getName());
         });
 
         buttonUrl.setOnClickListener(view -> {
-            // Abfrage der URL
-            Log.e("request", "request");
-            String src = "https://files.realpython.com/media/sample5.ca470b17f6d7.jpg";
-            Thread download = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    Log.e("kek", "kek");
-                    try {
-                        Log.e("start", "start");
-                        java.net.URL url = new java.net.URL(src);
-                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                        connection.setDoInput(true);
-                        connection.connect();
-                        Log.e("connected", "connected");
-                        int responseCode = connection.getResponseCode();
-                        if (responseCode == HttpURLConnection.HTTP_OK) {
-                            Log.e("ok", "ok");
-                            InputStream input = connection.getInputStream();
-                            Bitmap bmp = BitmapFactory.decodeStream(input);
-                            input.close();
-                            selectedImage = bmp;
-                            imageView.setImageBitmap(bmp);
-                            Log.e("done", "done");
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.e("failed", "failed");
-                    }
-                }
-            });
-            Toast.makeText(this, "finished", Toast.LENGTH_LONG).show();
+            AsyncTask task = new DownloadTask().execute(stringToURL(getURL()));
         });
 
         buttonPic.setOnClickListener(view -> {
@@ -97,6 +92,37 @@ public class MainActivity extends AppCompatActivity {
             Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             startActivityForResult(cameraIntent, 1888);
         });
+    }
+
+    private class DownloadTask extends AsyncTask<URL,Void,Bitmap> {
+        protected void onPreExecute() {
+            progressDialog.show();
+        }
+        protected Bitmap doInBackground(URL...urls) {
+            URL url = urls[0];
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
+                InputStream inputStream = connection.getInputStream();
+                BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+                return BitmapFactory.decodeStream(bufferedInputStream);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+        protected void onPostExecute(Bitmap result) {
+            progressDialog.dismiss();
+            if (result != null) {
+                selectedImage = result;
+                imageView.setImageBitmap(selectedImage);
+                textShowButton.setEnabled(true);
+                textSaveButton.setEnabled(true);
+            } else {
+                Toast.makeText(MainActivity.this, "Error", Toast.LENGTH_SHORT);
+            }
+        }
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -113,19 +139,63 @@ public class MainActivity extends AppCompatActivity {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
+        } else if (requestCode == 2) {
+            Text text = (Text) data.getExtras().get("data");
+            Intent i = new Intent(this, ShowTextActivity.class);
+            i.putExtra("text", text.getText());
+            startActivity(i);
         }
         textShowButton.setEnabled(true);
+        textSaveButton.setEnabled(true);
+    }
+
+    private String getURL() {
+        /*AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+        alertDialog.setTitle("URL");
+        alertDialog.setMessage("Enter URL");
+
+        final EditText input = new EditText(MainActivity.this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(lp);
+        alertDialog.setView(input);
+
+        alertDialog.setPositiveButton("DOWNLOAD",
+                (dialogInterface, i) -> src = input.getText().toString());
+        alertDialog.setNegativeButton("CANCEL",
+                (dialogInterface, i) -> dialogInterface.cancel());
+        alertDialog.show();*/
+        src = "https://developer.android.com/images/activity_lifecycle.png";
+
+        if (src == null) {
+            return null;
+        } else {
+            return src;
+        }
+    }
+
+    private URL stringToURL(String string) {
+        try {
+            return new URL(string);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void recognizeText() {
         InputImage image = InputImage.fromBitmap(selectedImage, 0);
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
         textShowButton.setEnabled(false);
+        textSaveButton.setEnabled(false);
         recognizer.process(image).addOnSuccessListener(text -> {
             textShowButton.setEnabled(true);
+            textSaveButton.setEnabled(true);
             processResult(text);
         }).addOnFailureListener(e -> {
             textShowButton.setEnabled(true);
+            textSaveButton.setEnabled(true);
             e.printStackTrace();
         });
     }
@@ -138,17 +208,11 @@ public class MainActivity extends AppCompatActivity {
             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput(fileName, Context.MODE_PRIVATE));
             outputStreamWriter.write(text.getText());
             outputStreamWriter.close();
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        } catch (IOException ex) {
-            ex.printStackTrace();
         }
         Intent i = new Intent(this, ShowTextActivity.class);
         i.putExtra("text", text.getText());
         startActivity(i);
-    }
-
-    private void openText() {
-
     }
 }
