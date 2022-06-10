@@ -7,8 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.*;
@@ -16,7 +14,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import androidx.fragment.app.DialogFragment;
-import androidx.savedstate.SavedStateRegistryOwner;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -31,8 +28,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,12 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private Button textShowButton;
     private Button textSaveButton;
     private Bitmap selectedImage;
-    private String src = null;
-    private URL url;
     private ProgressDialog progressDialog;
-
-    private final Executor executor = Executors.newSingleThreadExecutor();
-    private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         progressDialog = new ProgressDialog(MainActivity.this);
         progressDialog.setIndeterminate(true);
         progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        progressDialog.setTitle("AsyncTask");
+        progressDialog.setTitle("Downloading image");
         progressDialog.setMessage("Please wait, we are downloading your image file ...");
 
         textShowButton.setOnClickListener(view -> recognizeText());
@@ -78,7 +68,22 @@ public class MainActivity extends AppCompatActivity {
         });
 
         buttonUrl.setOnClickListener(view -> {
-            AsyncTask task = new DownloadTask().execute(stringToURL(getURL()));
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+            alertDialog.setTitle("URL");
+            alertDialog.setMessage("Enter URL");
+
+            final EditText input = new EditText(MainActivity.this);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT);
+            input.setLayoutParams(lp);
+            alertDialog.setView(input);
+
+            alertDialog.setPositiveButton("DOWNLOAD",
+                    (dialogInterface, i) -> new DownloadTask().execute(stringToURL(input.getText().toString())));
+            alertDialog.setNegativeButton("CANCEL",
+                    (dialogInterface, i) -> dialogInterface.cancel());
+            alertDialog.show();
         });
 
         buttonPic.setOnClickListener(view -> {
@@ -100,9 +105,8 @@ public class MainActivity extends AppCompatActivity {
         }
         protected Bitmap doInBackground(URL...urls) {
             URL url = urls[0];
-            HttpURLConnection connection = null;
             try {
-                connection = (HttpURLConnection) url.openConnection();
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.connect();
                 InputStream inputStream = connection.getInputStream();
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
@@ -120,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
                 textShowButton.setEnabled(true);
                 textSaveButton.setEnabled(true);
             } else {
-                Toast.makeText(MainActivity.this, "Error", Toast.LENGTH_SHORT);
+                Toast.makeText(MainActivity.this, "Error", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -147,32 +151,6 @@ public class MainActivity extends AppCompatActivity {
         }
         textShowButton.setEnabled(true);
         textSaveButton.setEnabled(true);
-    }
-
-    private String getURL() {
-        /*AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-        alertDialog.setTitle("URL");
-        alertDialog.setMessage("Enter URL");
-
-        final EditText input = new EditText(MainActivity.this);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT);
-        input.setLayoutParams(lp);
-        alertDialog.setView(input);
-
-        alertDialog.setPositiveButton("DOWNLOAD",
-                (dialogInterface, i) -> src = input.getText().toString());
-        alertDialog.setNegativeButton("CANCEL",
-                (dialogInterface, i) -> dialogInterface.cancel());
-        alertDialog.show();*/
-        src = "https://developer.android.com/images/activity_lifecycle.png";
-
-        if (src == null) {
-            return null;
-        } else {
-            return src;
-        }
     }
 
     private URL stringToURL(String string) {
