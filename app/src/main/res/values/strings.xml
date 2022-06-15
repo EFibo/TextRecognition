@@ -6,4 +6,7 @@
     <string name="textSave">Find text and save</string>
     <string name="contentDescription">Image to find text in</string>
     <string name="inputUrl">Image from URL</string>
+    <string name="openText">Open recognized text</string>
+    <string name="error">Error, please try again!</string>
+    <string name="enterValidURL">Please enter a valid URL!</string>
 </resources>

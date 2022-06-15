@@ -7,4 +7,7 @@
     <string name="textSave">Text finden und speichern</string>
     <string name="contentDescription">Bild in dem Text gefunden werden soll</string>
     <string name="inputUrl">Bild aus URL</string>
+    <string name="openText">Erkannten Text öffnen</string>
+    <string name="error">Fehler, bitte erneut versuchen!</string>
+    <string name="enterValidURL">Bitte eine gültige URL eingeben!</string>
 </resources>

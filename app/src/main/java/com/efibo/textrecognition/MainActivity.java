@@ -13,19 +13,14 @@ import android.widget.*;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import androidx.fragment.app.DialogFragment;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.rustamg.filedialogs.FileDialog;
-import com.rustamg.filedialogs.SaveFileDialog;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -33,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private Button textShowButton;
-    private Button textSaveButton;
     private Bitmap selectedImage;
     private ProgressDialog progressDialog;
 
@@ -44,13 +38,11 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.image_view);
         textShowButton = findViewById(R.id.button_text);
-        textSaveButton = findViewById(R.id.button_textSave);
         Button buttonUrl = findViewById(R.id.button_inputUrl);
         Button buttonPic = findViewById(R.id.button_choosePic);
         Button buttonCamera = findViewById(R.id.button_camera);
 
         textShowButton.setEnabled(false);
-        textSaveButton.setEnabled(false);
 
         progressDialog = new ProgressDialog(MainActivity.this);
         progressDialog.setIndeterminate(true);
@@ -59,13 +51,6 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.setMessage("Please wait, we are downloading your image file ...");
 
         textShowButton.setOnClickListener(view -> recognizeText());
-
-        textSaveButton.setOnClickListener(view -> {
-            recognizeText();
-            FileDialog dialog = new SaveFileDialog();
-            dialog.setStyle(DialogFragment.STYLE_NO_TITLE, R.style.Base_Theme_AppCompat);
-            dialog.show(getSupportFragmentManager(), SaveFileDialog.class.getName());
-        });
 
         buttonUrl.setOnClickListener(view -> {
             AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
@@ -80,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
             alertDialog.setView(input);
 
             alertDialog.setPositiveButton("DOWNLOAD",
-                    (dialogInterface, i) -> new DownloadTask().execute(stringToURL(input.getText().toString())));
+                    (dialogInterface, i) -> isUrlValid(input.getText().toString()));
             alertDialog.setNegativeButton("CANCEL",
                     (dialogInterface, i) -> dialogInterface.cancel());
             alertDialog.show();
@@ -97,6 +82,17 @@ public class MainActivity extends AppCompatActivity {
             Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             startActivityForResult(cameraIntent, 1888);
         });
+    }
+
+    private void isUrlValid(String url) {
+        try {
+            URL obj = new URL(url);
+            obj.toURI();
+            new DownloadTask().execute(stringToURL(url));
+        } catch (MalformedURLException | URISyntaxException e) {
+            Toast.makeText(MainActivity.this, getResources().getString(R.string.error), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
     }
 
     private class DownloadTask extends AsyncTask<URL,Void,Bitmap> {
@@ -122,9 +118,8 @@ public class MainActivity extends AppCompatActivity {
                 selectedImage = result;
                 imageView.setImageBitmap(selectedImage);
                 textShowButton.setEnabled(true);
-                textSaveButton.setEnabled(true);
             } else {
-                Toast.makeText(MainActivity.this, "Error", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, getResources().getString(R.string.error), Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -150,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
         }
         textShowButton.setEnabled(true);
-        textSaveButton.setEnabled(true);
     }
 
     private URL stringToURL(String string) {
@@ -166,14 +160,11 @@ public class MainActivity extends AppCompatActivity {
         InputImage image = InputImage.fromBitmap(selectedImage, 0);
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
         textShowButton.setEnabled(false);
-        textSaveButton.setEnabled(false);
         recognizer.process(image).addOnSuccessListener(text -> {
             textShowButton.setEnabled(true);
-            textSaveButton.setEnabled(true);
             processResult(text);
         }).addOnFailureListener(e -> {
             textShowButton.setEnabled(true);
-            textSaveButton.setEnabled(true);
             e.printStackTrace();
         });
     }
