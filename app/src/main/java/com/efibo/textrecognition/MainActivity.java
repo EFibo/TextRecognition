@@ -1,23 +1,15 @@
 package com.efibo.textrecognition;
 
 import android.app.ProgressDialog;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.*;
 import android.net.Uri;
-import android.os.AsyncTask;
+import android.os.*;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.widget.*;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import android.os.Bundle;
+import androidx.appcompat.app.*;
 import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.Text;
-import com.google.mlkit.vision.text.TextRecognition;
-import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.*;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.*;
@@ -41,13 +33,11 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.image_view);
         textShowButton = findViewById(R.id.button_text);
-        Button openTextButton = findViewById(R.id.button_openText);
         Button buttonUrl = findViewById(R.id.button_inputUrl);
         Button buttonPic = findViewById(R.id.button_choosePic);
         Button buttonCamera = findViewById(R.id.button_camera);
 
         textShowButton.setEnabled(false);
-        openTextButton.setEnabled(false);
 
         progressDialog = new ProgressDialog(MainActivity.this);
         progressDialog.setIndeterminate(true);
@@ -56,8 +46,6 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.setMessage(getResources().getString(R.string.waitForFinish));
 
         textShowButton.setOnClickListener(view -> recognizeText());
-
-        //openTextButton.setOnClickListener(view -> openText());
 
         buttonUrl.setOnClickListener(view -> {
             AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
@@ -90,29 +78,6 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(cameraIntent, 1888);
         });
     }
-
-    /*private void openText() {
-        try {
-            FileInputStream inputStream = openFileInput(new File(getExternalFilesDir("output.txt")));
-            if (inputStream != null) {
-                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                String text = "", preText;
-                try {
-                    while ((preText = bufferedReader.readLine()) != null)
-                        text += preText;
-                    Intent i = new Intent(this, ShowTextActivity.class);
-                    i.putExtra("text", text);
-                    startActivity(i);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, "Error", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        }
-    }*/
 
     private void isUrlValid(String url) {
         try {
@@ -200,48 +165,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processResult(Text text) {
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-        alertDialog.setTitle("File name");
-        alertDialog.setMessage("Enter file name");
-
-        final EditText input = new EditText(MainActivity.this);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT);
-        input.setLayoutParams(lp);
-        alertDialog.setView(input);
-
-        alertDialog.setPositiveButton("SAVE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finish();
-                fileName = input.getText().toString() + ".txt";
-                saveFile(text);
-            }
-        });
-        alertDialog.setNeutralButton("DON'T CHOOSE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finish();
-                fileName = "document_" + sdf.format(new Date()) + ".txt";
-                saveFile(text);
-            }
-        });
-        alertDialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
-        alertDialog.show();
-    }
-
-    private void saveFile(Text text) {
+        fileName = "document_" + sdf.format(new Date()) + ".txt";
         try {
-            Log.e("filename", fileName);
-            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput(fileName, Context.MODE_PRIVATE));
-            outputStreamWriter.write(text.getText());
-            outputStreamWriter.close();
+            File file = new File(Environment.getExternalStorageDirectory()+"/Documents"+"/TextRecognition");
+            if (!file.exists()) { boolean success = file.mkdirs(); }
+            file = new File(Environment.getExternalStorageDirectory()+"/Documents"+"/TextRecognition/"+fileName);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+            writer.write(text.getText());
+            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
