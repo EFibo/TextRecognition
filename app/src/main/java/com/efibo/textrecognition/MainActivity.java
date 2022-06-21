@@ -1,6 +1,5 @@
 package com.efibo.textrecognition;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.*;
 import android.net.Uri;
@@ -22,9 +21,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageView;
     private Button textShowButton;
     private Bitmap selectedImage;
-    private String fileName;
-    private ProgressDialog progressDialog;
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,32 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
         textShowButton.setEnabled(false);
 
-        progressDialog = new ProgressDialog(MainActivity.this);
-        progressDialog.setIndeterminate(true);
-        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        progressDialog.setTitle(getResources().getString(R.string.downloadingImage));
-        progressDialog.setMessage(getResources().getString(R.string.waitForFinish));
-
         textShowButton.setOnClickListener(view -> recognizeText());
 
-        buttonUrl.setOnClickListener(view -> {
-            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-            alertDialog.setTitle("URL");
-            alertDialog.setMessage("Enter URL");
-
-            final EditText input = new EditText(MainActivity.this);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT);
-            input.setLayoutParams(lp);
-            alertDialog.setView(input);
-
-            alertDialog.setPositiveButton("DOWNLOAD",
-                    (dialogInterface, i) -> isUrlValid(input.getText().toString()));
-            alertDialog.setNegativeButton("CANCEL",
-                    (dialogInterface, i) -> dialogInterface.cancel());
-            alertDialog.show();
-        });
+        buttonUrl.setOnClickListener(view -> showAlertDialog());
 
         buttonPic.setOnClickListener(view -> {
             Intent choosePic = new Intent(Intent.ACTION_GET_CONTENT);
@@ -79,6 +53,25 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void showAlertDialog() {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+        alertDialog.setTitle("URL");
+        alertDialog.setMessage("Enter URL");
+
+        final EditText input = new EditText(MainActivity.this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(lp);
+        alertDialog.setView(input);
+
+        alertDialog.setPositiveButton("DOWNLOAD",
+                (dialogInterface, i) -> isUrlValid(input.getText().toString()));
+        alertDialog.setNegativeButton("CANCEL",
+                (dialogInterface, i) -> dialogInterface.cancel());
+        alertDialog.show();
+    }
+
     private void isUrlValid(String url) {
         try {
             URL obj = new URL(url);
@@ -90,10 +83,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class DownloadTask extends AsyncTask<URL,Void,Bitmap> {
-        protected void onPreExecute() {
-            progressDialog.show();
+    private URL stringToURL(String string) {
+        try {
+            return new URL(string);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
         }
+        return null;
+    }
+
+    private class DownloadTask extends AsyncTask<URL,Void,Bitmap> {
         protected Bitmap doInBackground(URL...urls) {
             URL url = urls[0];
             try {
@@ -108,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
         protected void onPostExecute(Bitmap result) {
-            progressDialog.dismiss();
             if (result != null) {
                 selectedImage = result;
                 imageView.setImageBitmap(selectedImage);
@@ -142,15 +140,6 @@ public class MainActivity extends AppCompatActivity {
         textShowButton.setEnabled(true);
     }
 
-    private URL stringToURL(String string) {
-        try {
-            return new URL(string);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     private void recognizeText() {
         InputImage image = InputImage.fromBitmap(selectedImage, 0);
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
@@ -165,11 +154,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processResult(Text text) {
-        fileName = "document_" + sdf.format(new Date()) + ".txt";
+        String fileName = "document_" + sdf.format(new Date()) + ".txt";
         try {
             File file = new File(Environment.getExternalStorageDirectory()+"/Documents"+"/TextRecognition");
             if (!file.exists()) { boolean success = file.mkdirs(); }
-            file = new File(Environment.getExternalStorageDirectory()+"/Documents"+"/TextRecognition/"+fileName);
+            file = new File(Environment.getExternalStorageDirectory()+"/Documents"+"/TextRecognition/"+ fileName);
             BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
             writer.write(text.getText());
             writer.close();
