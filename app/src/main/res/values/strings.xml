@@ -9,4 +9,6 @@
     <string name="openText">Open recognized text</string>
     <string name="error">Error, please try again!</string>
     <string name="enterValidURL">Please enter a valid URL!</string>
+    <string name="downloadingImage">Downloading image</string>
+    <string name="waitForFinish">Please wait, we are downloading your image file ...</string>
 </resources>

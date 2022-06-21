@@ -10,4 +10,6 @@
     <string name="openText">Erkannten Text öffnen</string>
     <string name="error">Fehler, bitte erneut versuchen!</string>
     <string name="enterValidURL">Bitte eine gültige URL eingeben!</string>
+    <string name="downloadingImage">Herunterladen des Bildes</string>
+    <string name="waitForFinish">Bitte warten, wir laden das Bild herunter ...</string>
 </resources>
