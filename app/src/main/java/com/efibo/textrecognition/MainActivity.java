@@ -1,5 +1,6 @@
 package com.efibo.textrecognition;
 
+// Imports
 import android.content.Intent;
 import android.graphics.*;
 import android.net.Uri;
@@ -23,11 +24,13 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap selectedImage;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
+    // Legt fest was passiert, wenn die Activity gestartet wird
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Bindet die Design-Elemente in den Code ein
         imageView = findViewById(R.id.image_view);
         textShowButton = findViewById(R.id.button_text);
         Button buttonUrl = findViewById(R.id.button_inputUrl);
@@ -40,19 +43,22 @@ public class MainActivity extends AppCompatActivity {
 
         buttonUrl.setOnClickListener(view -> showAlertDialog());
 
+        // File chooser für Bilder
         buttonPic.setOnClickListener(view -> {
             Intent choosePic = new Intent(Intent.ACTION_GET_CONTENT);
-            choosePic.setType("image/*");
+            choosePic.setType("image/*"); // Filter für Bilder
             choosePic = Intent.createChooser(choosePic, "Choose a picture");
             startActivityForResult(choosePic, 1);
         });
 
+        // Kamera, um ein Bild aufzunehmen
         buttonCamera.setOnClickListener(view -> {
             Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             startActivityForResult(cameraIntent, 1888);
         });
     }
 
+    // Fenster für Eingabe der URL
     private void showAlertDialog() {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
         alertDialog.setTitle("URL");
@@ -72,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    // Prüft, ob die URL korrekt eingegeben wurde
     private void isUrlValid(String url) {
         try {
             URL obj = new URL(url);
@@ -83,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Konvertiert den eingegebenen String zu einer URL
     private URL stringToURL(String string) {
         try {
             return new URL(string);
@@ -92,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
+    // Es wird versucht, das Bild von der URL herunterzuladen
     private class DownloadTask extends AsyncTask<URL,Void,Bitmap> {
         protected Bitmap doInBackground(URL...urls) {
             URL url = urls[0];
@@ -106,6 +115,7 @@ public class MainActivity extends AppCompatActivity {
             }
             return null;
         }
+        // Wenn das erfolgreich ist, wird das Bild angezeigt
         protected void onPostExecute(Bitmap result) {
             if (result != null) {
                 selectedImage = result;
@@ -117,12 +127,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        // Wenn ein Bild gemacht wurde
         if (requestCode == 1888) {
             selectedImage = (Bitmap) data.getExtras().get("data");
             imageView.setImageBitmap(selectedImage);
-        } else if (requestCode == 1) {
+        }
+        // Wenn ein Bild aus dem Speicher ausgewählt wurde
+        else if (requestCode == 1) {
             try {
                 Uri imageUri = data.getData();
                 InputStream imageStream = getContentResolver().openInputStream(imageUri);
@@ -131,15 +145,11 @@ public class MainActivity extends AppCompatActivity {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-        } else if (requestCode == 2) {
-            Text text = (Text) data.getExtras().get("data");
-            Intent i = new Intent(this, ShowTextActivity.class);
-            i.putExtra("text", text.getText());
-            startActivity(i);
         }
         textShowButton.setEnabled(true);
     }
 
+    // Text wird aus dem ausgewählten oder heruntergeladenen Bild erkannt
     private void recognizeText() {
         InputImage image = InputImage.fromBitmap(selectedImage, 0);
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
@@ -153,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // Erkannter Text wird gespeichert und angezeigt
     private void processResult(Text text) {
         String fileName = "document_" + sdf.format(new Date()) + ".txt";
         try {
@@ -165,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // Anzeige des ausgelesenen Textes in der ShowTextActivity
         Intent i = new Intent(this, ShowTextActivity.class);
         i.putExtra("text", text.getText());
         startActivity(i);
